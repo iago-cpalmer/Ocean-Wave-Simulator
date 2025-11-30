@@ -30,13 +30,20 @@ uniform float uSpeedRamp;
 
 float uWavePeakScatterStrength = 0.7;
 float uScatterStrength = 0.5;
-float uScatterShadowStrength = 0.7;
-float uBubbleDensity = 0.2;
+float uScatterShadowStrength = 0.9;
+float uBubbleDensity = 0.8;
 
 vec3 uScatterColor = vec3(0.6, 0.8, 1.0) * 1.5;
 float uSunIrradiance = 0.6;
 
 vec3 uBubbleColor = vec3(1.0);
+
+float uFoamThreshold     = 0.9;
+float uFoamHardness      = 0.5;
+float uFoamIntensity     = 2.0;
+float uFoamDistanceFade  = 1000;
+
+vec3 uFoamColor = vec3( 1.0);
 
 vec3 water_lighting_simple(vec3 N, vec3 V, vec3 L, vec3 sunColor)
 {
@@ -44,15 +51,15 @@ vec3 water_lighting_simple(vec3 N, vec3 V, vec3 L, vec3 sunColor)
     
     // Fresnel
     float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
-
     // Sun specular (very sharp)
     vec3 H = normalize(L + V);
     float spec = pow(max(dot(N, H), 0.0), 400.0);
     
     // Fake sky color (or sample cubemap)
-    vec3 sky = vec3(0.6, 0.8, 1.0) * 1.5;
+    vec3 sky = vec3(0.6, 0.8, 1.0) * 0.5;
     //vec3 deep = vec3(0.01, 0.03, 0.08);
-    vec3 deep = vec3(0.01, 0.03, 0.08) * 2.1;
+    //vec3 deep = vec3(0.01, 0.03, 0.08) * 5.0; // deep ocean
+    vec3 deep = vec3(0.01, 0.05, 0.05) * 2.0; // storm ocean
     return mix(deep, sky, fresnel) + spec * sunColor * 3.0;
 }
 
@@ -123,13 +130,41 @@ vec3 compute_light_scatter(vec3 L, vec3 V, vec3 N)
 
 void main()
 {
+    float totalWaveHeight = vLocalPos.y;
     vec3 normal = normalize(compute_normal_of_wave(vLocalPos));
     vec3 viewDir = normalize(uViewPosition - vFragPos);  // or from camera pos
     vec3 lightDir = normalize(-uDirectionalLight.Direction);
 
-    vec3 color = water_lighting_simple(normal, viewDir, lightDir, uDirectionalLight.DiffuseColor);
-    vec3 scatter = compute_light_scatter(lightDir, viewDir, normal);
-    // Optional: add foam, subsurface, etc. later
+    vec3 baseWater = water_lighting_simple(normal, viewDir, lightDir, uDirectionalLight.DiffuseColor);
+    vec3 scatter   = vec3(1.0);//compute_light_scatter(lightDir, viewDir, normal);
 
-    FragColor = vec4(scatter * color, 1.0);
+    // ======================
+    // FOAM / WHITECAPS
+    // ======================
+    // 1. Steepness-based foam (Jacobian approximation via normal.y)
+    float steepness = 1 - normal.y; // 0 = flat, 1 = vertical
+
+    // 2. Height-based foam bias (higher waves = more likely to break)
+    float heightFactor = totalWaveHeight / (uAmplitude * 2.0); // rough normalization
+
+    // Combine
+    float foamRaw = steepness;
+    foamRaw = pow(foamRaw, 2.0); // make it appear only on real peaks
+
+    // Smooth but sharp threshold
+    float foamMask = smoothstep(uFoamThreshold, uFoamThreshold + 0.15, foamRaw);
+    foamMask = pow(foamMask, uFoamHardness);
+
+    // Fade foam with distance to avoid noisy far-away foam
+    float dist = length(uViewPosition - vFragPos);
+    foamMask *= clamp(1.0 - dist / uFoamDistanceFade, 0.0, 1.0);
+
+    // Final foam contribution
+    vec3 foam = uFoamColor * foamMask * uFoamIntensity * (scatter + uDirectionalLight.DiffuseColor);
+
+    // Composite: water + scatter + foam on top
+    vec3 color = baseWater * scatter;
+    color = mix(color, foam, foamMask); // foam overrides everything where present
+
+    FragColor = vec4(color * uMaterial.Ambient, 1.0);
 } 

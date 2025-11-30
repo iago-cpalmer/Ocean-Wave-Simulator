@@ -73,7 +73,7 @@ int main()
 	sphereEntity.meshRendererData.ModelHandle = ah_register_model(&oceanModel);
 	sphereEntity.Position = glm::vec3(0);
 	sphereEntity.Rotation = glm::vec3(0, 0, 0);
-	sphereEntity.Scale = glm::vec3(1.0f);
+	sphereEntity.Scale = glm::vec3(1.0);
 
 	// --- Definition of material --------
 	Material sphereMat;
@@ -91,11 +91,11 @@ int main()
 
 	Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
 	set_uniform_vec2(pShader, "uWaveDirection", glm::vec2(1.0f, 1.0f));
-	set_uniform_float(pShader, "uSpeed", 0.5f);
-	set_uniform_float(pShader, "uSteepness", 1.0);
-	set_uniform_int(pShader, "uWaveCount", 128);
+	set_uniform_float(pShader, "uSpeed", 1.0f);
+	set_uniform_float(pShader, "uSteepness", 0.9);
+	set_uniform_int(pShader, "uWaveCount", 300);
 	set_uniform_float(pShader, "uTime", glfwGetTime());	
-	set_uniform_float(pShader, "uFrequency", 0.1f);	
+	set_uniform_float(pShader, "uFrequency", 0.125f);	
 	set_uniform_float(pShader, "uAmplitude", 1.0f);	
 	set_uniform_float(pShader, "uPersistance", 0.83f);	
 	set_uniform_float(pShader, "uLacunarity", 1.17f);
