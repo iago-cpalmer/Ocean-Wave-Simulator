@@ -3,6 +3,8 @@
 **Pending features:**
 - Add skybox
 - Add environment reflections
+- GUI to adjust parameters of the ocean
+- Buoyancy
 
 Some demo videos: (youtube compression does not like these)
 [![Watch the video](https://img.youtube.com/vi/0eY55l89I_Y/maxresdefault.jpg)](https://www.youtube.com/watch?v=0eY55l89I_Y)
