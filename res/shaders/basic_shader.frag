@@ -27,6 +27,17 @@ uniform float uInitialSeed;
 uniform float uSeedIter;
 uniform float uSpeedRamp;
 
+
+float uWavePeakScatterStrength = 0.7;
+float uScatterStrength = 0.5;
+float uScatterShadowStrength = 0.7;
+float uBubbleDensity = 0.2;
+
+vec3 uScatterColor = vec3(0.6, 0.8, 1.0) * 1.5;
+float uSunIrradiance = 0.6;
+
+vec3 uBubbleColor = vec3(1.0);
+
 vec3 water_lighting_simple(vec3 N, vec3 V, vec3 L, vec3 sunColor)
 {
     vec3 R = reflect(-V, N);
@@ -92,6 +103,24 @@ vec3 compute_normal_of_wave(vec3 pos)
     return normal;
 }
 
+float dot_clamped(vec3 a, vec3 b)
+{
+    return clamp(dot(a, b), 0.0, 1.0);
+}
+
+vec3 compute_light_scatter(vec3 L, vec3 V, vec3 N)
+{
+    float k1 = uWavePeakScatterStrength * pow(dot_clamped(L, -V), 4.0) * pow(0.5 - 0.5 * dot(L, N), 3.0);
+    float k2 = uScatterStrength * pow(dot_clamped(V, N), 2.0);
+    float k3 = uScatterShadowStrength * dot_clamped(N, L);
+    float k4 = uBubbleDensity;
+
+    vec3 scatter = (k1 + k2) * uScatterColor * uSunIrradiance;
+    scatter += k3 * uScatterColor * uSunIrradiance + k4 * uBubbleColor * uSunIrradiance;
+
+    return scatter;
+}
+
 void main()
 {
     vec3 normal = normalize(compute_normal_of_wave(vLocalPos));
@@ -99,8 +128,8 @@ void main()
     vec3 lightDir = normalize(-uDirectionalLight.Direction);
 
     vec3 color = water_lighting_simple(normal, viewDir, lightDir, uDirectionalLight.DiffuseColor);
-
+    vec3 scatter = compute_light_scatter(lightDir, viewDir, normal);
     // Optional: add foam, subsurface, etc. later
 
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(scatter * color, 1.0);
 } 
