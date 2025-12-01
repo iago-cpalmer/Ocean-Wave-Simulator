@@ -3,6 +3,7 @@
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
+#include "data/cubemap.h"
 
 #include "data/buffers/frame_buffer.h"
 
@@ -16,6 +17,12 @@ enum class RenderTargetType
 {
 	Screen,
 	Texture
+};
+
+enum class SkyType
+{
+	Color,
+	Skybox
 };
 
 typedef struct
@@ -34,6 +41,12 @@ typedef struct
 
 	float NearPlane;
 	float FarPlane;
+
+	SkyType BackgroundType;
+	union {
+		Cubemap Skybox;
+		glm::vec3 Color;
+	} Background;
 
 	RenderTargetType RenderTarget;
 

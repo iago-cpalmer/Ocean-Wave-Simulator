@@ -79,7 +79,7 @@ void scene_render(Scene* rpScene)
 		if (rpScene->Cameras[i] != nullptr)
 		{
 			begin_render(rpScene, rpScene->Cameras[i]);
-
+			render_skybox(rpScene->Cameras[i]);
 			for (int i = 0; i < MAX_ENTITIES; i++)
 			{
 				Entity* entity = rpScene->Entities[i];
@@ -97,6 +97,8 @@ void scene_render(Scene* rpScene)
 					draw_mesh(model->p_Mesh, transform, model->p_MaterialHandles, model->MaterialCount);
 				}
 			}
+
+			
 
 			end_render();
 		}

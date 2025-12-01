@@ -65,8 +65,6 @@ unsigned int INDICES_CUBE[] = {
 	20, 23, 22, 20, 22, 21
 };
 
-#endif // !MESHES_H
-
 // ------------------------------------
 // PLANE
 // ------------------------------------
@@ -129,3 +127,67 @@ void create_mesh_grid(Mesh *pMesh, int nx, int nz)
 
     pMesh->Submeshes[0] = Submesh{ 0, (unsigned int)indices.size() };
 }
+
+// ------------------------------------
+// SKYBOX
+// ------------------------------------
+float VERTICES_SKYBOX[] = {
+	// Front face	
+	// Position
+	 -0.5f, -0.5f,  -0.5f, 
+	 -0.5f, 0.5f,  -0.5f, 
+	 0.5f, -0.5f,  -0.5f, 
+	 0.5f, 0.5f,  -0.5f, 
+						
+	 // Back face		
+	 -0.5f, -0.5f, 0.5f,
+	 -0.5f, 0.5f, 0.5f,
+	 0.5f, -0.5f, 0.5f,
+	 0.5f, 0.5f, 0.5f,
+						
+	 // Top face		
+	 -0.5f, 0.5f, -0.5f,
+	 -0.5f, 0.5f, 0.5f,
+	 0.5f, 0.5f, 0.5f,
+	 0.5f, 0.5f, -0.5f,
+						
+	 // Bottom face		
+	 -0.5f, -0.5f, -0.5f,
+	 -0.5f, -0.5f, 0.5f,
+	 0.5f, -0.5f, 0.5f,
+	 0.5f, -0.5f, -0.5f,
+						
+	 // Left face		
+	 0.5f, -0.5f, -0.5f,
+	 0.5f, 0.5f, -0.5f,
+	 0.5f, 0.5f, 0.5f,
+	 0.5f, -0.5f, 0.5f,
+						
+	 // Right face		
+	 -0.5f, -0.5f, -0.5f,
+	 -0.5f, 0.5f, -0.5f,
+	 -0.5f, 0.5f, 0.5f,
+	 -0.5f, -0.5f, 0.5f
+};
+
+unsigned int INDICES_SKYBOX[] = {
+	// Front face
+	0, 2, 3, 0, 3, 1,
+
+	// Back face
+	4 , 5 , 7 , 4 ,7 , 6,
+
+	// Top face
+	8, 11, 10, 8, 10, 9,
+
+	// Bottom face
+	14,  12, 13, 12, 14, 15,
+
+	// Left face
+	16, 19, 18, 16, 18, 17,
+
+	// Right face
+	20, 22, 23, 20, 21, 22
+};
+
+#endif

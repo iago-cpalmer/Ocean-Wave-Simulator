@@ -8,8 +8,12 @@
 #include "light/directional_light.h"
 #include "../scene/scene.h"
 
+void init_scene_renderer(Mesh *pSkybox);
+
 void begin_render(Scene* rp_Scene, CameraInfo* rpCamera);
 void end_render();
+
+void render_skybox(CameraInfo* pCamera);
 
 void draw_mesh(Mesh* rp_mesh, glm::mat4x4 r_transform, MaterialHandle* r_materials, unsigned int r_matCount);
 

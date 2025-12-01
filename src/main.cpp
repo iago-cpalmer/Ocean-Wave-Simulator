@@ -26,6 +26,8 @@
 #include "assets/asset_list.h"
 #include "core/memory_utils.h"
 #include "renderer/data/buffers/frame_buffer.h"
+#include "renderer/data/cubemap.h"
+#include "renderer/scene_renderer.h"
 
 const float DESIRED_FPS = 120;
 
@@ -40,6 +42,29 @@ int main()
 	renderer_set_clear_color_normalized(0.6f* 1.5, 0.8f* 1.5, 1.0f* 1.5);
 	init_input();
 	cursor_set_state(CursorLockType::CenterLock, false);
+
+	Cubemap skybox;
+	/*
+	std::vector<std::string> skyFacesPath =
+	{
+		"res/images/skybox_right.jpg",
+		"res/images/skybox_left.jpg",
+		"res/images/skybox_top.jpg",
+		"res/images/skybox_bottom.jpg",
+		"res/images/skybox_front.jpg",
+		"res/images/skybox_back.jpg",
+	};*/
+	std::vector<std::string> skyFacesPath =
+	{
+		"res/images/skybox_storm_left.png",
+		"res/images/skybox_storm_right.png",
+		"res/images/skybox_storm_top.png",
+		"res/images/skybox_storm_bottom.png",
+		"res/images/skybox_storm_front.png",
+		"res/images/skybox_storm_back.png",
+	};
+	
+	load_cubemap(&skybox, skyFacesPath);
 	
 	CameraInfo camera{};
 	camera.RenderTarget = RenderTargetType::Screen;
@@ -52,9 +77,20 @@ int main()
 	camera.MovementSpeed = 10.0f;
 	camera.NearPlane = 0.1f;
 	camera.FarPlane = 2000.0f;
+	camera.BackgroundType = SkyType::Skybox;
+	camera.Background.Skybox = skybox;
 
 	bool locked = true;
 
+	Mesh skyboxMesh;
+	VertexAttribute vAttr[] =
+	{
+		VertexAttribute{VertexAttributeType::FLOAT, 3}
+	};
+	create_mesh(&skyboxMesh, vAttr, 1, VERTICES_SKYBOX, 24, INDICES_SKYBOX, 36, 1, GL_STATIC_DRAW);
+
+	init_scene_renderer(&skyboxMesh);
+	
 	Scene scene;
 	init_scene(&scene);
 	scene_add_camera(&scene, &camera);
@@ -62,9 +98,9 @@ int main()
 	al_load_all_assets();
 
 
-#pragma region SPHERE_DEFINITION
+#pragma region OCEAN_DEFINITION
 	// vvv ----------------------------
-	// Sphere
+	// Ocean
 	Model oceanModel;
 	Mesh oceanMesh;
 	create_mesh_grid(&oceanMesh, 1024, 1024);
@@ -85,9 +121,9 @@ int main()
 	sphereMat.AlbedoMap = al_get_texture_handle(TextureName::point_light);
 	// -----------------------------------
 	
-   oceanModel.p_MaterialHandles = (MaterialHandle*)CE_MALLOC(sizeof(MaterialHandle));
-   oceanModel.p_MaterialHandles[0] = ah_register_material(&sphereMat);
-   oceanModel.MaterialCount = 1;
+   	oceanModel.p_MaterialHandles = (MaterialHandle*)CE_MALLOC(sizeof(MaterialHandle));
+   	oceanModel.p_MaterialHandles[0] = ah_register_material(&sphereMat);
+   	oceanModel.MaterialCount = 1;
 
 	Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
 	set_uniform_vec2(pShader, "uWaveDirection", glm::vec2(1.0f, 1.0f));
@@ -109,6 +145,7 @@ int main()
 	instantiate_entity(&scene, &sphereEntity);
 	// ^^^ ----------------------------
 #pragma endregion
+
 
 	PointLight pointLight;
 	pointLight.Position = glm::vec3(2.0f, 0.0f, 0.0f);

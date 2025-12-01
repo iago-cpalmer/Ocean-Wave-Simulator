@@ -9,6 +9,7 @@
 
 #include "renderer.h"
 #include "../assets/public/assets_handler.h"
+#include "data/cubemap.h"
 //#include "../assets/public/assets_handler.h"
 
 
@@ -16,7 +17,17 @@ static CameraInfo* sp_Camera;
 static glm::mat4x4 s_ViewMatrix;
 static glm::mat4x4 s_ProjectionMatrix;
 
+static Shader s_SkyboxShader;
+static Mesh* sp_Skybox;
+
 static Scene* sp_CurrentScene;
+
+void init_scene_renderer(Mesh *pSkybox)
+{
+	create_shader(&s_SkyboxShader, "res/shaders/skybox_shader.vert", "res/shaders/skybox_shader.frag");
+	
+	sp_Skybox = pSkybox;
+}
 
 void begin_render(Scene* rp_Scene, CameraInfo* rpCamera)
 {
@@ -26,11 +37,19 @@ void begin_render(Scene* rp_Scene, CameraInfo* rpCamera)
 	_calculate_view_matrix();
 	_calculate_projection_matrix();
 
+	if(rpCamera->BackgroundType == SkyType::Color)
+	{
+		renderer_set_clear_color_normalized(rpCamera->Background.Color.x, rpCamera->Background.Color.y, rpCamera->Background.Color.z);
+	}
+
 	if (rpCamera->RenderTarget == RenderTargetType::Texture)
 	{
 		use_fb(*rpCamera->FrameBuffer);
 		renderer_prepare_frame();
 	}
+
+	
+	
 	/*// TODO: all this uniforms should become part of uniform buffers
 	// write all uniforms to shaders
 	LightEnvironment* pLights = &sp_CurrentScene->SceneRenderData.LightEnv;
@@ -52,6 +71,29 @@ void begin_render(Scene* rp_Scene, CameraInfo* rpCamera)
 			shader_set_projection_matrix(pShader, s_ProjectionMatrix);
 		}
 	}*/
+}
+
+void render_skybox(CameraInfo *pCamera)
+{
+	if(pCamera->BackgroundType == SkyType::Skybox)
+	{
+		glDepthFunc(GL_LEQUAL);
+		Cubemap &skybox = pCamera->Background.Skybox;
+
+		use_shader(&s_SkyboxShader);
+		set_uniform_1i(&s_SkyboxShader, "uSkybox", 0);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.TextureId);
+
+		glm::mat4 view = glm::mat4(glm::mat3(s_ViewMatrix)); 
+		shader_set_view_matrix(&s_SkyboxShader, view);
+		shader_set_projection_matrix(&s_SkyboxShader, s_ProjectionMatrix);
+
+		draw_indexed(sp_Skybox->Vao, sp_Skybox->Ibo, 36, 0);
+
+		glDepthFunc(GL_LESS);
+	}
 }
 
 void end_render()
