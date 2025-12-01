@@ -27,6 +27,7 @@ uniform float uInitialSeed;
 uniform float uSeedIter;
 uniform float uSpeedRamp;
 
+uniform samplerCube uSkybox;
 
 float uWavePeakScatterStrength = 0.7;
 float uScatterStrength = 0.5;
@@ -38,16 +39,19 @@ float uSunIrradiance = 0.6;
 
 vec3 uBubbleColor = vec3(1.0);
 
-float uFoamThreshold     = 0.9;
-float uFoamHardness      = 0.5;
-float uFoamIntensity     = 2.0;
-float uFoamDistanceFade  = 1000;
+uniform float uFoamThreshold;
+uniform float uFoamHardness;
+uniform float uFoamIntensity;
+uniform float uFoamDistanceFade;
 
-vec3 uFoamColor = vec3( 1.0);
+uniform vec3 uFoamColor;
+
+uniform vec3 uSeaColor;
+
+uniform float uFogDistance;
 
 vec3 water_lighting_simple(vec3 N, vec3 V, vec3 L, vec3 sunColor)
 {
-    vec3 R = reflect(-V, N);
     
     // Fresnel
     float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
@@ -57,10 +61,10 @@ vec3 water_lighting_simple(vec3 N, vec3 V, vec3 L, vec3 sunColor)
     
     // Fake sky color (or sample cubemap)
     vec3 sky = vec3(0.6, 0.8, 1.0) * 0.5;
-    //vec3 deep = vec3(0.01, 0.03, 0.08);
-    //vec3 deep = vec3(0.01, 0.03, 0.08) * 5.0; // deep ocean
-    vec3 deep = vec3(0.01, 0.05, 0.05) * 2.0; // storm ocean
-    return mix(deep, sky, fresnel) + spec * sunColor * 3.0;
+    vec3 I = normalize(vFragPos - V);
+    vec3 R = reflect(I, normalize(N)); 
+    sky = vec3(texture(uSkybox, R).rgb);
+    return mix(uSeaColor, sky, fresnel * 0.7) + spec * sunColor * 3.0;
 }
 
 
@@ -166,5 +170,15 @@ void main()
     vec3 color = baseWater * scatter;
     color = mix(color, foam, foamMask); // foam overrides everything where present
 
-    FragColor = vec4(color * uMaterial.Ambient, 1.0);
+    // add fog
+    vec3 I = normalize(vFragPos - uViewPosition);
+    vec3 R = reflect(I, normal); 
+    vec3 sky = vec3(texture(uSkybox, R).rgb);
+    
+    float fogDistance = distance(uViewPosition, vFragPos);
+    float fogFactor = clamp(fogDistance / uFogDistance, 0.0, 1.0);
+
+    color = mix(color, sky, fogFactor);
+
+    FragColor = vec4(color , 1.0);
 } 

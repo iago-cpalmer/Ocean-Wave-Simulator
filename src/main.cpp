@@ -29,6 +29,9 @@
 #include "renderer/data/cubemap.h"
 #include "renderer/scene_renderer.h"
 
+#include "imgui/imgui_handler.h"
+
+
 const float DESIRED_FPS = 120;
 
 int main()
@@ -43,17 +46,20 @@ int main()
 	init_input();
 	cursor_set_state(CursorLockType::CenterLock, false);
 
+	imgui_init();
+
 	Cubemap skybox;
 	/*
 	std::vector<std::string> skyFacesPath =
 	{
-		"res/images/skybox_right.jpg",
-		"res/images/skybox_left.jpg",
-		"res/images/skybox_top.jpg",
-		"res/images/skybox_bottom.jpg",
-		"res/images/skybox_front.jpg",
-		"res/images/skybox_back.jpg",
+		"res/images/skybox_cold_sunset_right.png",
+		"res/images/skybox_cold_sunset_left.png",
+		"res/images/skybox_cold_sunset_top.png",
+		"res/images/skybox_cold_sunset_bottom.png",
+		"res/images/skybox_cold_sunset_front.png",
+		"res/images/skybox_cold_sunset_back.png"
 	};*/
+	
 	std::vector<std::string> skyFacesPath =
 	{
 		"res/images/skybox_storm_left.png",
@@ -69,7 +75,7 @@ int main()
 	CameraInfo camera{};
 	camera.RenderTarget = RenderTargetType::Screen;
 	camera.Projection = ProjectionType::Perspective;
-	camera.Position = glm::vec3(0.0f, 0.0f, 6.0f);
+	camera.Position = glm::vec3(300.0f, 10.0f, 300.0f);
 	camera.Rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	camera.Fov = 45.0f;
 	camera.SensitivityX = 10.0f;
@@ -126,7 +132,6 @@ int main()
    	oceanModel.MaterialCount = 1;
 
 	Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
-	set_uniform_vec2(pShader, "uWaveDirection", glm::vec2(1.0f, 1.0f));
 	set_uniform_float(pShader, "uSpeed", 1.0f);
 	set_uniform_float(pShader, "uSteepness", 0.9);
 	set_uniform_int(pShader, "uWaveCount", 300);
@@ -141,6 +146,15 @@ int main()
 
 	set_uniform_float(pShader, "uSpeedRamp", 1.07f);	
 
+	set_uniform_vec3(pShader, "uFoamColor", glm::vec3(1.0f));
+	set_uniform_float(pShader, "uFoamThreshold", 0.9f);
+	set_uniform_float(pShader, "uFoamHardness", 0.5f);
+	set_uniform_float(pShader, "uFoamIntensity", 2.0f);
+	set_uniform_float(pShader, "uFoamDistanceFade", 1000.0f);
+
+	set_uniform_vec3(pShader, "uSeaColor", glm::vec3(0.01f, 0.05f, 0.05f));
+
+	set_uniform_float(pShader, "uFogDistance", 500.0f);
 
 	instantiate_entity(&scene, &sphereEntity);
 	// ^^^ ----------------------------
@@ -165,6 +179,296 @@ int main()
 	add_directional_light(&scene, &directionalLight);
 	add_point_light(&scene, &pointLight);
 
+#pragma region INIT_IMGUI_COMPONENTS
+	// Init ImGui components
+	ImGuiComponent waveAmplitudeComp{};
+	waveAmplitudeComp.Name = "Amplitude";
+	waveAmplitudeComp.Type = ImGuiComponentType::Float;
+	waveAmplitudeComp.Data = FloatComponent{
+			0.0f,
+			10.0f,
+			1.0f,
+			[](float val)
+			{
+				Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+				set_uniform_float(pShader, "uAmplitude", val);
+			}
+	};
+
+	imgui_add_component(&waveAmplitudeComp);
+
+	// Additional Wave parameters grouped under Wave Amplitude
+	ImGuiComponent speedComp{};
+	speedComp.Name = "Speed";
+	speedComp.Type = ImGuiComponentType::Float;
+	speedComp.Data = FloatComponent{
+		0.0f,
+		10.0f,
+		1.0f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uSpeed", val);
+		}
+	};
+
+	imgui_add_component(&speedComp);
+
+	ImGuiComponent steepnessComp{};
+	steepnessComp.Name = "Steepness";
+	steepnessComp.Type = ImGuiComponentType::Float;
+	steepnessComp.Data = FloatComponent{
+		0.0f,
+		1.0f,
+		0.9f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uSteepness", val);
+		}
+	};
+	imgui_add_component(&steepnessComp);
+
+	ImGuiComponent waveCountComp{};
+	waveCountComp.Name = "WaveCount";
+	waveCountComp.Type = ImGuiComponentType::Int;
+	waveCountComp.Data = IntComponent{
+		1,
+		2048,
+		300,
+		[](int val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_int(pShader, "uWaveCount", val);
+		}
+	};
+	imgui_add_component(&waveCountComp);
+
+	ImGuiComponent frequencyComp{};
+	frequencyComp.Name = "Frequency";
+	frequencyComp.Type = ImGuiComponentType::Float;
+	frequencyComp.Data = FloatComponent{
+		0.0f,
+		10.0f,
+		0.125f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uFrequency", val);
+		}
+	};
+	imgui_add_component(&frequencyComp);
+
+	ImGuiComponent persistanceComp{};
+	persistanceComp.Name = "Persistance";
+	persistanceComp.Type = ImGuiComponentType::Float;
+	persistanceComp.Data = FloatComponent{
+		0.0f,
+		2.0f,
+		0.83f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uPersistance", val);
+		}
+	};
+	imgui_add_component(&persistanceComp);
+
+	ImGuiComponent lacunarityComp{};
+	lacunarityComp.Name = "Lacunarity";
+	lacunarityComp.Type = ImGuiComponentType::Float;
+	lacunarityComp.Data = FloatComponent{
+		0.0f,
+		4.0f,
+		1.17f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uLacunarity", val);
+		}
+	};
+	imgui_add_component(&lacunarityComp);
+
+	ImGuiComponent initialSeedComp{};
+	initialSeedComp.Name = "InitialSeed";
+	initialSeedComp.Type = ImGuiComponentType::Float;
+	initialSeedComp.Data = FloatComponent{
+		0.0f,
+		1000.0f,
+		2.0f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uInitialSeed", val);
+		}
+	};
+	imgui_add_component(&initialSeedComp);
+
+	ImGuiComponent seedIterComp{};
+	seedIterComp.Name = "SeedIter";
+	seedIterComp.Type = ImGuiComponentType::Float;
+	seedIterComp.Data = FloatComponent{
+		0.0f,
+		1000.0f,
+		4.1f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uSeedIter", val);
+		}
+	};
+	imgui_add_component(&seedIterComp);
+
+	ImGuiComponent speedRampComp{};
+	speedRampComp.Name = "SpeedRamp";
+	speedRampComp.Type = ImGuiComponentType::Float;
+	speedRampComp.Data = FloatComponent{
+		0.0f,
+		10.0f,
+		1.07f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uSpeedRamp", val);
+		}
+	};
+	imgui_add_component(&speedRampComp);
+#pragma region ADD_VEC2_VEC3_COLOR
+
+	ImGuiComponent dirLightDirComp{};
+	dirLightDirComp.Name = "DirLightDir";
+	dirLightDirComp.Type = ImGuiComponentType::Vec3;
+	dirLightDirComp.Data = Vec3Component{
+		glm::vec3(-1.0f),
+		glm::vec3(1.0f),
+		directionalLight.Direction,
+		[&directionalLight](glm::vec3 val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			directionalLight.Direction = val;
+			set_uniform_vec3(pShader, "uDirectionalLight.Direction", val);
+		}
+	};
+	imgui_add_component(&dirLightDirComp);
+
+	ImGuiComponent dirLightColorComp{};
+	dirLightColorComp.Name = "DirLightColor";
+	dirLightColorComp.Type = ImGuiComponentType::Color;
+	dirLightColorComp.Data = ColorComponent{
+		directionalLight.DiffuseColor,
+		[&directionalLight](glm::vec3 val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			directionalLight.DiffuseColor = val;
+			set_uniform_vec3(pShader, "uDirectionalLight.DiffuseColor", val);
+		}
+	};
+	imgui_add_component(&dirLightColorComp);
+#pragma endregion
+
+
+	ImGuiComponent foamThresholdComp{};
+	foamThresholdComp.Name = "FoamThreshold";
+	foamThresholdComp.Type = ImGuiComponentType::Float;
+	foamThresholdComp.Data = FloatComponent{
+		0.0f,
+		1.0f,
+		0.9f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uFoamThreshold", val);
+		}
+	};
+	imgui_add_component(&foamThresholdComp);
+
+	ImGuiComponent foamHardnessComp{};
+	foamHardnessComp.Name = "FoamHardness";
+	foamHardnessComp.Type = ImGuiComponentType::Float;
+	foamHardnessComp.Data = FloatComponent{
+		0.0f,
+		1.0f,
+		0.5f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uFoamHardness", val);
+		}
+	};
+	imgui_add_component(&foamHardnessComp);
+
+	ImGuiComponent foamIntensityComp{};
+	foamIntensityComp.Name = "FoamIntensity";
+	foamIntensityComp.Type = ImGuiComponentType::Float;
+	foamIntensityComp.Data = FloatComponent{
+		0.0f,
+		10.0f,
+		2.0f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uFoamIntensity", val);
+		}
+	};
+	imgui_add_component(&foamIntensityComp);
+
+	ImGuiComponent foamDistanceFadeComp{};
+	foamDistanceFadeComp.Name = "FoamDistanceFade";
+	foamDistanceFadeComp.Type = ImGuiComponentType::Float;
+	foamDistanceFadeComp.Data = FloatComponent{
+		0.0f,
+		1000.0f,
+		1000.0f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uFoamDistanceFade", val);
+		}
+	};
+	imgui_add_component(&foamDistanceFadeComp);
+
+	ImGuiComponent foamColorComp{};
+	foamColorComp.Name = "FoamColor";
+	foamColorComp.Type = ImGuiComponentType::Color;
+	foamColorComp.Data = ColorComponent{
+		glm::vec3(1.0f, 1.0f, 1.0f),
+		[&directionalLight](glm::vec3 val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_vec3(pShader, "uFoamColor", val);
+		}
+	};
+	imgui_add_component(&foamColorComp);
+
+	ImGuiComponent seaColorComp{};
+	seaColorComp.Name = "OceanColor";
+	seaColorComp.Type = ImGuiComponentType::Color;
+	seaColorComp.Data = ColorComponent{
+		glm::vec3(0.01f, 0.05f, 0.05f),
+		[&directionalLight](glm::vec3 val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_vec3(pShader, "uSeaColor", val);
+		}
+	};
+	imgui_add_component(&seaColorComp);
+
+	ImGuiComponent fogDistanceFadeComp{};
+	fogDistanceFadeComp.Name = "FogDistance";
+	fogDistanceFadeComp.Type = ImGuiComponentType::Float;
+	fogDistanceFadeComp.Data = FloatComponent{
+		0.0f,
+		1000.0f,
+		500.0f,
+		[](float val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_float(pShader, "uFogDistance", val);
+		}
+	};
+	imgui_add_component(&fogDistanceFadeComp);
+	
+#pragma endregion
 	// ^^^ ----------------------------
 	while (!window_should_close())
 	{
@@ -173,22 +477,27 @@ int main()
 		update_input();
 #pragma endregion
 
+		imgui_render();
+
 #pragma region region_update_state
 		if (is_input_pressed(Input::Escape))
 		{
 			cursor_set_state(CursorLockType::Free, true);
 			locked = false;
 		}
-		if (is_mouse_button_pressed(MouseButton::LeftClick))
+		if (!imgui_has_cursor())
 		{
-			cursor_set_state(CursorLockType::CenterLock, false);
-			locked = true;
-		}
+			
+			if (is_mouse_button_pressed(MouseButton::LeftClick))
+			{
+				cursor_set_state(CursorLockType::CenterLock, false);
+				locked = true;
+			}
 
-		// vvv Camera stuff -----------
-		if (locked)
-		{
-			camera_update(&camera);
+			if (locked)
+			{
+				camera_update(&camera);
+			}
 		}
 		// ^^^ ------------------------
 
@@ -209,9 +518,11 @@ int main()
 
 		scene_render(&scene);
 
+		imgui_finish_render();
 		renderer_finish_render();
 	}
 
+	
 	window_terminate();
 	return 0;
 }

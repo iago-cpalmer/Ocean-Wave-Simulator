@@ -13,3 +13,6 @@
 [submodule "vendor/arena_allocator"]
 	path = vendor/arena_allocator
 	url = https://github.com/iago-cpalmer/arena_allocator.git
+[submodule "vendor/dear_imgui"]
+	path = vendor/dear_imgui
+	url = https://github.com/ocornut/imgui.git

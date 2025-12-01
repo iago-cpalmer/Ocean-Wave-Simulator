@@ -1,6 +1,14 @@
 file(GLOB_RECURSE SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/arena_allocator/arena_allocator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui/imgui.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui/imgui_demo.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui/imgui_draw.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui/imgui_tables.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui/imgui_widgets.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui/backends/imgui_impl_opengl3.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui/backends/imgui_impl_glfw.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui/backends/misc/cpp/imgui_stdlib.*"
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
@@ -11,6 +19,8 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/../vendor/arena_allocator
         ${CMAKE_CURRENT_SOURCE_DIR}/../vendor/stb
+        ${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui
+        ${CMAKE_CURRENT_SOURCE_DIR}/../vendor/dear_imgui/backends/
 )
 
 # Link vendor libraries

@@ -130,6 +130,8 @@ void draw_mesh(Mesh* rp_mesh, glm::mat4x4 r_transform, MaterialHandle* r_materia
 		glActiveTexture(GL_TEXTURE0);
 		use_texture(ah_get_texture(mat.AlbedoMap));
 
+		glBindTexture(GL_TEXTURE_CUBE_MAP, sp_Camera->Background.Skybox.TextureId);  
+
 		shader_set_model_matrix(shader, r_transform);
 
 		draw_indexed(rp_mesh->Vao, rp_mesh->Ibo, rp_mesh->Submeshes[i].IndexCount, rp_mesh->Submeshes[i].StartIndex);
