@@ -3,9 +3,6 @@
 Ocean wave simulator using fBm and Grestner waves.
 
 **Pending features:**
-- Add skybox.
-- Add environment reflections.
-- GUI to adjust parameters of the ocean.
 - Buoyancy.
 - Implement simulation with FFT.
 
