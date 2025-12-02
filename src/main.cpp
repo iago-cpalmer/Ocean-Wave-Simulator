@@ -52,12 +52,12 @@ int main()
 	/*
 	std::vector<std::string> skyFacesPath =
 	{
-		"res/images/skybox_cold_sunset_right.png",
-		"res/images/skybox_cold_sunset_left.png",
-		"res/images/skybox_cold_sunset_top.png",
-		"res/images/skybox_cold_sunset_bottom.png",
-		"res/images/skybox_cold_sunset_front.png",
-		"res/images/skybox_cold_sunset_back.png"
+		"res/images/skybox_sunset_right.png",
+		"res/images/skybox_sunset_left.png",
+		"res/images/skybox_sunset_top.png",
+		"res/images/skybox_sunset_bottom.png",
+		"res/images/skybox_sunset_front.png",
+		"res/images/skybox_sunset_back.png"
 	};*/
 	
 	std::vector<std::string> skyFacesPath =
@@ -153,6 +153,7 @@ int main()
 	set_uniform_float(pShader, "uFoamDistanceFade", 1000.0f);
 
 	set_uniform_vec3(pShader, "uSeaColor", glm::vec3(0.01f, 0.05f, 0.05f));
+	set_uniform_vec3(pShader, "uSeaColorSurface", glm::vec3(0.01f, 0.05f, 0.05f));
 
 	set_uniform_float(pShader, "uFogDistance", 500.0f);
 
@@ -452,6 +453,19 @@ int main()
 		}
 	};
 	imgui_add_component(&seaColorComp);
+
+	ImGuiComponent seaColorSurfaceComp{};
+	seaColorSurfaceComp.Name = "OceanColorSurface";
+	seaColorSurfaceComp.Type = ImGuiComponentType::Color;
+	seaColorSurfaceComp.Data = ColorComponent{
+		glm::vec3(0.01f, 0.05f, 0.05f),
+		[&directionalLight](glm::vec3 val)
+		{
+			Shader* pShader = al_get_shader_ptr(ShaderName::basic_shader);
+			set_uniform_vec3(pShader, "uSeaColorSurface", val);
+		}
+	};
+	imgui_add_component(&seaColorSurfaceComp);
 
 	ImGuiComponent fogDistanceFadeComp{};
 	fogDistanceFadeComp.Name = "FogDistance";

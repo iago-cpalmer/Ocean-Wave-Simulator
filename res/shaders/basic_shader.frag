@@ -47,6 +47,7 @@ uniform float uFoamDistanceFade;
 uniform vec3 uFoamColor;
 
 uniform vec3 uSeaColor;
+uniform vec3 uSeaColorSurface;
 
 uniform float uFogDistance;
 
@@ -54,17 +55,22 @@ vec3 water_lighting_simple(vec3 N, vec3 V, vec3 L, vec3 sunColor)
 {
     
     // Fresnel
-    float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
-    // Sun specular (very sharp)
+    float fresnel = (0.04  + (1.0-0.04)*(pow(1.0 - max(0.0, dot(N, V)), 5.0)));
+    // Specular
     vec3 H = normalize(L + V);
     float spec = pow(max(dot(N, H), 0.0), 400.0);
     
-    // Fake sky color (or sample cubemap)
     vec3 sky = vec3(0.6, 0.8, 1.0) * 0.5;
     vec3 I = normalize(vFragPos - V);
     vec3 R = reflect(I, normalize(N)); 
+    R.y = abs(R.y);
     sky = vec3(texture(uSkybox, R).rgb);
-    return mix(uSeaColor, sky, fresnel * 0.7) + spec * sunColor * 3.0;
+
+    float WATER_DEPTH = 10.0;
+    float totalWaveHeight = vLocalPos.y;
+    vec3 scatter = fresnel * mix(uSeaColor, uSeaColorSurface, totalWaveHeight / WATER_DEPTH);
+
+    return scatter + mix(uSeaColor, sky, fresnel * 0.7) + spec * sunColor * 3.0;
 }
 
 
@@ -132,15 +138,37 @@ vec3 compute_light_scatter(vec3 L, vec3 V, vec3 N)
     return scatter;
 }
 
+// Great tonemapping function from my other shader: https://www.shadertoy.com/view/XsGfWV
+vec3 aces_tonemap(vec3 color) {  
+  mat3 m1 = mat3(
+    0.59719, 0.07600, 0.02840,
+    0.35458, 0.90834, 0.13383,
+    0.04823, 0.01566, 0.83777
+  );
+  mat3 m2 = mat3(
+    1.60475, -0.10208, -0.00327,
+    -0.53108,  1.10813, -0.07276,
+    -0.07367, -0.00605,  1.07602
+  );
+  vec3 v = m1 * color;  
+  vec3 a = v * (v + 0.0245786) - 0.000090537;
+  vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
+  return pow(clamp(m2 * (a / b), 0.0, 1.0), vec3(1.0 / 2.2));  
+}
+
+
 void main()
 {
+    float WATER_DEPTH = uAmplitude * 4.0;
+    vec3 waterHitPos = vLocalPos;
+
     float totalWaveHeight = vLocalPos.y;
     vec3 normal = normalize(compute_normal_of_wave(vLocalPos));
     vec3 viewDir = normalize(uViewPosition - vFragPos);  // or from camera pos
     vec3 lightDir = normalize(-uDirectionalLight.Direction);
 
     vec3 baseWater = water_lighting_simple(normal, viewDir, lightDir, uDirectionalLight.DiffuseColor);
-    vec3 scatter   = vec3(1.0);//compute_light_scatter(lightDir, viewDir, normal);
+    //vec3 scatter   = 
 
     // ======================
     // FOAM / WHITECAPS
@@ -148,7 +176,7 @@ void main()
     // 1. Steepness-based foam (Jacobian approximation via normal.y)
     float steepness = 1 - normal.y; // 0 = flat, 1 = vertical
 
-    // 2. Height-based foam bias (higher waves = more likely to break)
+    // 2. Height-based foam bias
     float heightFactor = totalWaveHeight / (uAmplitude * 2.0); // rough normalization
 
     // Combine
@@ -164,15 +192,16 @@ void main()
     foamMask *= clamp(1.0 - dist / uFoamDistanceFade, 0.0, 1.0);
 
     // Final foam contribution
-    vec3 foam = uFoamColor * foamMask * uFoamIntensity * (scatter + uDirectionalLight.DiffuseColor);
+    vec3 foam = uFoamColor * foamMask * uFoamIntensity * (uDirectionalLight.DiffuseColor);
 
     // Composite: water + scatter + foam on top
-    vec3 color = baseWater * scatter;
+    vec3 color = baseWater;// + scatter;
     color = mix(color, foam, foamMask); // foam overrides everything where present
 
     // add fog
     vec3 I = normalize(vFragPos - uViewPosition);
     vec3 R = reflect(I, normal); 
+    R.y = abs(R.y);
     vec3 sky = vec3(texture(uSkybox, R).rgb);
     
     float fogDistance = distance(uViewPosition, vFragPos);
