@@ -5,6 +5,7 @@ Ocean wave simulator using fBm and Grestner waves.
 **Pending features:**
 - Buoyancy.
 - Implement simulation with FFT.
+![Project Preview](https://i.imgur.com/K9LptMH.jpeg)
 
 Demo Video: (youtube compression does not like it)
 [![Watch the video](https://img.youtube.com/vi/otPELxPIuLw/maxresdefault.jpg)](https://www.youtube.com/watch?v=otPELxPIuLw)
