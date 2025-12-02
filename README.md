@@ -7,8 +7,7 @@ Ocean wave simulator using fBm and Grestner waves.
 - Implement simulation with FFT.
   
 Demo Video: (youtube compression does not like it)
-[![Watch the video](https://img.youtube.com/vi/otPELxPIuLw/maxresdefault.jpg)](https://www.youtube.com/watch?v=otPELxPIuLw)
-[![Watch the video](https://i.imgur.com/K9LptMH.jpeg)]([https://www.youtube.com/watch?v=otPELxPIuLw](https://www.youtube.com/watch?v=YvomrQmvalo))
+[![Watch the video](https://i.imgur.com/nvtcH3o.png)](https://www.youtube.com/watch?v=K4j1B1_ilLI)
 
 
 **References**
